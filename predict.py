@@ -1,5 +1,6 @@
 #coding=utf-8
 import os
+import sys
 import datetime
 import tensorflow as tf
 import pandas as pd
@@ -18,7 +19,6 @@ tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many ste
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
 tf.flags.DEFINE_integer("max_sent_in_doc", 10, "Number of checkpoints to store (default: 5)")
 tf.flags.DEFINE_integer("max_word_in_sent", 20, "Number of checkpoints to store (default: 5)")
-tf.flags.DEFINE_integer("evaluate_every", 100, "evaluate every this many batches")
 tf.flags.DEFINE_float("lr", 0.01, "learning rate")
 tf.flags.DEFINE_float("grad_clip", 5, "grad clip to prevent gradient explode")
 tf.flags.DEFINE_float("lr_decay", 0.5, "learning rate decay (default: 0.5)")
@@ -40,7 +40,7 @@ with tf.Session() as sess:
                     hidden_size=FLAGS.hidden_size)
 #    sess.run(tf.global_variables_initializer())
     saver = tf.train.Saver(tf.trainable_variables())
-    saver.restore(sess, 'models/sentiment-0')
+    saver.restore(sess, 'models/' + sys.argv[1])
     with tf.name_scope('prediction'):
         pred = tf.sigmoid(han.out, name='pred')
 
