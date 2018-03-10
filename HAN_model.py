@@ -1,7 +1,34 @@
 #coding=utf8
+import numpy as np
+import pickle as pk
 import tensorflow as tf
 from tensorflow.contrib import rnn
 from tensorflow.contrib import layers
+
+GLOVE_FILE = 'data/glove.60B.50d.txt'
+DIM = 50
+
+def get_glove_vectors():
+    print 'Loading GLOVE vectors'
+    glove_vectors = {}
+    idx = 0
+    with open(GLOVE_FILE, 'r') as glove_file:
+#        glove_file.readline()
+        for line in glove_file:
+            if len(line.split()) == 2:
+                print "escaped line: %s" %line
+                continue
+            idx += 1
+            tokens = line.split()
+            word = tokens[0]
+            vector = [float(e) for e in tokens[1:]]
+            if len(vector) != DIM:
+                print "dim of %s is not %d" %(word, DIM)
+                assert 0
+            glove_vectors[word] = np.array(vector)
+            if idx % 100000 == 0:
+                print "Loaded %d" %idx
+    return glove_vectors
 
 def length(sequences):
     used = tf.sign(tf.reduce_max(tf.abs(sequences), reduction_indices=2))
@@ -36,8 +63,23 @@ class HAN():
 
 
     def word2vec(self):
+        glove_vectors = get_glove_vectors()
+        allvec_mean, allvec_std = pk.load(open("mean_std_GloVe", 'r'))
+        embedding_matrix = np.random.normal(allvec_mean, allvec_std, (self.vocab_size, self.embedding_size))
+        vocab_file = open('data/train_vocab.pickle', 'rb')
+        vocab = pk.load(vocab_file)
+        print 'Preparing embedding_matrix'
+        found = 0
+        for w_, i_ in vocab.items():
+            if i_ > self.vocab_size:
+                continue
+            if w_ in glove_vectors:
+                found += 1
+                embedding_matrix[i_] = glove_vectors[w_]
+        print '%d words found in GloVe' %found
+
         with tf.name_scope("embedding"):
-            embedding_mat = tf.Variable(tf.truncated_normal((self.vocab_size, self.embedding_size)))
+            embedding_mat = tf.Variable(embedding_matrix, dtype = tf.float32, name = "_word_embeddings")
             #shape为[batch_size, sent_in_doc, word_in_sent, embedding_size]
             word_embedded = tf.nn.embedding_lookup(embedding_mat, self.input_x)
         return word_embedded
